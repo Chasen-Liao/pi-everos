@@ -2,6 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { agentDir } from "./credentials.ts";
+import { isValidScopeId } from "./scope.ts";
 
 export interface EverosSettings {
   enabled: boolean;
@@ -13,6 +14,7 @@ export interface EverosSettings {
   prompt: {
     enabled: boolean;
     maxTokens: number;
+    customText?: string;
   };
 }
 
@@ -39,29 +41,12 @@ export function schemaDestPath(): string {
 
 export function loadSettings(): EverosSettings {
   const path = settingsPath();
-  if (!existsSync(path)) return { ...DEFAULT_SETTINGS, prompt: { ...DEFAULT_SETTINGS.prompt } };
+  if (!existsSync(path)) return cloneDefault();
   try {
-    const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<EverosSettings> & {
-      prompt?: Partial<EverosSettings["prompt"]>;
-    };
-    return {
-      enabled: raw.enabled !== false,
-      mode: "uvx",
-      userId: typeof raw.userId === "string" && raw.userId.trim() ? raw.userId.trim() : DEFAULT_SETTINGS.userId,
-      appId: typeof raw.appId === "string" && raw.appId.trim() ? raw.appId.trim() : DEFAULT_SETTINGS.appId,
-      projectId:
-        typeof raw.projectId === "string" && raw.projectId.trim() ? raw.projectId.trim() : DEFAULT_SETTINGS.projectId,
-      globalProjectId:
-        typeof raw.globalProjectId === "string" && raw.globalProjectId.trim()
-          ? raw.globalProjectId.trim()
-          : DEFAULT_SETTINGS.globalProjectId,
-      prompt: {
-        enabled: raw.prompt?.enabled !== false,
-        maxTokens: clampTokens(raw.prompt?.maxTokens),
-      },
-    };
+    const raw = JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
+    return parseSettings(raw);
   } catch {
-    return { ...DEFAULT_SETTINGS, prompt: { ...DEFAULT_SETTINGS.prompt } };
+    return cloneDefault();
   }
 }
 
@@ -69,17 +54,29 @@ export function saveSettings(settings: EverosSettings): void {
   const path = settingsPath();
   mkdirSync(dirname(path), { recursive: true });
   ensureSchemaCopy();
-  const body = {
-    $schema: "./schemas/everos.schema.json",
-    enabled: settings.enabled,
-    mode: settings.mode,
-    userId: settings.userId,
-    appId: settings.appId,
-    projectId: settings.projectId,
-    globalProjectId: settings.globalProjectId,
-    prompt: settings.prompt,
+  const prompt: EverosSettings["prompt"] = {
+    enabled: settings.prompt.enabled,
+    maxTokens: settings.prompt.maxTokens,
   };
-  writeFileSync(path, `${JSON.stringify(body, null, 2)}\n`, "utf8");
+  if (settings.prompt.customText?.trim()) prompt.customText = settings.prompt.customText.trim();
+  writeFileSync(
+    path,
+    `${JSON.stringify(
+      {
+        $schema: "./schemas/everos.schema.json",
+        enabled: settings.enabled,
+        mode: "uvx",
+        userId: settings.userId,
+        appId: settings.appId,
+        projectId: settings.projectId,
+        globalProjectId: settings.globalProjectId,
+        prompt,
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
 }
 
 export function ensureSettingsFile(): EverosSettings {
@@ -87,6 +84,41 @@ export function ensureSettingsFile(): EverosSettings {
   if (!existsSync(settingsPath())) saveSettings(settings);
   else ensureSchemaCopy();
   return settings;
+}
+
+export function parseSettings(raw: Record<string, unknown>): EverosSettings {
+  const promptRaw = isRecord(raw.prompt) ? raw.prompt : {};
+  const customText = typeof promptRaw.customText === "string" ? promptRaw.customText.trim() : undefined;
+  return {
+    enabled: raw.enabled !== false,
+    mode: "uvx",
+    userId: scopeOr(raw.userId, DEFAULT_SETTINGS.userId),
+    appId: scopeOr(raw.appId, DEFAULT_SETTINGS.appId),
+    projectId: projectOr(raw.projectId, DEFAULT_SETTINGS.projectId),
+    globalProjectId: scopeOr(raw.globalProjectId, DEFAULT_SETTINGS.globalProjectId),
+    prompt: {
+      enabled: promptRaw.enabled !== false,
+      maxTokens: clampTokens(promptRaw.maxTokens),
+      ...(customText ? { customText } : {}),
+    },
+  };
+}
+
+function scopeOr(value: unknown, fallback: string): string {
+  return typeof value === "string" && isValidScopeId(value) ? value : fallback;
+}
+
+function projectOr(value: unknown, fallback: string): string {
+  if (value === "auto") return "auto";
+  return scopeOr(value, fallback);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function cloneDefault(): EverosSettings {
+  return { ...DEFAULT_SETTINGS, prompt: { ...DEFAULT_SETTINGS.prompt } };
 }
 
 function clampTokens(value: unknown): number {

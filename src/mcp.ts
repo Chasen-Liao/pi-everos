@@ -36,7 +36,7 @@ export function readFileEverosServer(): FileServerInfo {
     info.present = true;
     info.enabled = entry.enabled !== false;
     info.command = entry.command;
-    info.overridesExtension = true;
+    info.overridesExtension = info.enabled;
     return info;
   } catch (error) {
     throw new Error(redact(`Failed to read ${path}: ${String(error)}`));
@@ -44,7 +44,7 @@ export function readFileEverosServer(): FileServerInfo {
 }
 
 /** Filesystem only. Safe to call from the extension factory. */
-export function resolveUvx(): { command: string; available: boolean; onDisk: boolean } {
+export function resolveUvx(): { command: string; onDisk: boolean } {
   const home = homedir();
   const candidates = [
     join(home, ".local", "bin", "uvx.exe"),
@@ -53,10 +53,9 @@ export function resolveUvx(): { command: string; available: boolean; onDisk: boo
     join(home, ".cargo", "bin", "uvx"),
   ];
   const command = candidates.find((path) => existsSync(path));
-  if (command) return { command, available: true, onDisk: true };
+  if (command) return { command, onDisk: true };
   return {
     command: process.platform === "win32" ? "uvx.exe" : "uvx",
-    available: true,
     onDisk: false,
   };
 }

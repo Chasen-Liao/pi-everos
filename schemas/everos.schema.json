@@ -48,6 +48,10 @@
           "minimum": 0,
           "maximum": 2000,
           "default": 200
+        },
+        "customText": {
+          "type": "string",
+          "description": "Optional replacement for the generated memory protocol. Still clipped by maxTokens. Never put secrets here."
         }
       }
     }

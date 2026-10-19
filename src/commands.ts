@@ -15,6 +15,7 @@ import {
 import { buildDoctorReport } from "./report.ts";
 import type { ResolvedCredentials } from "./credentials.ts";
 import { isValidScopeId } from "./scope.ts";
+import { t } from "./text.ts";
 
 export interface CommandDeps {
   pi: ExtensionAPI;
@@ -22,6 +23,7 @@ export interface CommandDeps {
   setSettings: (next: EverosSettings) => void;
   fileServer: () => FileServerInfo;
   creds: () => ResolvedCredentials;
+  refreshCreds: () => ResolvedCredentials;
   uvxCommand: () => string;
   uvxOnDisk: () => boolean;
   registerServers: () => void;
@@ -54,7 +56,7 @@ export function registerEverosCommand(deps: CommandDeps): void {
       const sub = tokens[0] || "status";
       switch (sub) {
         case "login":
-          return login(ctx);
+          return login(deps, ctx);
         case "logout":
           return logout(deps, ctx);
         case "reconnect":
@@ -83,16 +85,17 @@ async function status(deps: CommandDeps, ctx: ExtensionCommandContext, doctor: b
     [GLOBAL_SERVER]: everosToolNames(deps.pi, GLOBAL_SERVER).length,
   };
   const notes: string[] = [];
-  if (fileServer.overridesExtension) {
-    notes.push("doctor: rename or disable ~/.pi/agent/mcp.json everos so the extension can own that name. This plugin will not edit that file.");
-  }
+  if (fileServer.present && fileServer.enabled) notes.push(t("doctorDisable"));
+  else if (fileServer.present && !fileServer.enabled) notes.push(t("doctorDisabledOwns"));
   if (!deps.uvxOnDisk()) notes.push(uvInstallHint());
-  if (!creds.present) notes.push("doctor: set EVEROS_API_KEY in the user environment, then /everos login or restart Pi.");
+  if (!creds.present) notes.push(t("missingKey"));
   if (settings.enabled && counts[projectServer] === 0 && counts[GLOBAL_SERVER] === 0) {
     notes.push("doctor: no extension-owned EverOS tools yet. Wait for MCP connect, or check uvx/key.");
   }
   if (!settings.enabled) notes.push("doctor: plugin disabled in everos.json. /everos login to enable.");
   const report = buildDoctorReport({
+    banner: t("doctorBanner"),
+    end: t("doctorEnd"),
     enabled: settings.enabled,
     uvx: deps.uvxCommand(),
     uvxOnDisk: deps.uvxOnDisk(),
@@ -121,7 +124,7 @@ async function scope(deps: CommandDeps, ctx: ExtensionCommandContext, args: stri
   }
   if (action === "auto") {
     applyScope(deps, { ...settings, projectId: "auto" });
-    ctx.ui.notify(`projectId=auto → ${deps.projectId()}\nReconnected project and global MCP servers.`, "info");
+    ctx.ui.notify(`projectId=auto → ${deps.projectId()} (directory basename)\nReconnected.`, "info");
     return;
   }
   if (action === "project") {
@@ -130,7 +133,7 @@ async function scope(deps: CommandDeps, ctx: ExtensionCommandContext, args: stri
       return;
     }
     applyScope(deps, { ...settings, projectId: value });
-    ctx.ui.notify(`projectId=${deps.projectId()}\nReconnected project and global MCP servers.`, "info");
+    ctx.ui.notify(`projectId=${deps.projectId()}\nReconnected.`, "info");
     return;
   }
   if (action === "global") {
@@ -139,7 +142,7 @@ async function scope(deps: CommandDeps, ctx: ExtensionCommandContext, args: stri
       return;
     }
     applyScope(deps, { ...settings, globalProjectId: value });
-    ctx.ui.notify(`globalProjectId=${value}\nReconnected project and global MCP servers.`, "info");
+    ctx.ui.notify(`globalProjectId=${value}\nReconnected.`, "info");
     return;
   }
   ctx.ui.notify("Usage: /everos scope [auto|project <id>|global <id>]", "warning");
@@ -153,27 +156,27 @@ function applyScope(deps: CommandDeps, next: EverosSettings): void {
 }
 
 function scopeLines(deps: CommandDeps, settings: EverosSettings): string[] {
+  const auto = settings.projectId === "auto";
   return [
     `userId=${settings.userId}`,
     `appId=${settings.appId}`,
-    `projectId=${deps.projectId()} (setting=${settings.projectId})`,
+    `projectId=${deps.projectId()} (setting=${settings.projectId}${auto ? ", derived from directory basename" : ""})`,
     `globalProjectId=${settings.globalProjectId}`,
     "Search project tools for workspace facts; search global tools for user-wide preferences.",
     "Change: /everos scope auto | /everos scope project <id> | /everos scope global <id>",
   ];
 }
 
-async function login(ctx: ExtensionCommandContext): Promise<void> {
-  ctx.ui.notify(
-    [
-      "EverOS login does not store the API key in everos.json.",
-      "1. Create a key in the EverOS Console.",
-      "2. Set user environment variable EVEROS_API_KEY.",
-      "3. Restart Pi or run /everos reconnect.",
-      "Windows: setx EVEROS_API_KEY your_key",
-    ].join("\n"),
-    "info",
-  );
+async function login(deps: CommandDeps, ctx: ExtensionCommandContext): Promise<void> {
+  ctx.ui.notify(t("loginHelp"), "info");
+  const creds = deps.refreshCreds();
+  if (!creds.present) return;
+  const next = { ...deps.settings(), enabled: true };
+  deps.setSettings(next);
+  saveSettings(next);
+  deps.unregisterServers();
+  deps.registerServers();
+  ctx.ui.notify(t("loginOk"), "info");
 }
 
 async function logout(deps: CommandDeps, ctx: ExtensionCommandContext): Promise<void> {
@@ -181,14 +184,15 @@ async function logout(deps: CommandDeps, ctx: ExtensionCommandContext): Promise<
   deps.setSettings(next);
   saveSettings(next);
   deps.unregisterServers();
-  ctx.ui.notify("EverOS disconnected for this plugin. User EVEROS_API_KEY was not deleted.", "info");
+  ctx.ui.notify(t("logout"), "info");
 }
 
 async function reconnect(deps: CommandDeps, ctx: ExtensionCommandContext): Promise<void> {
+  deps.refreshCreds();
   const next = { ...deps.settings(), enabled: true };
   deps.setSettings(next);
   saveSettings(next);
   deps.unregisterServers();
   deps.registerServers();
-  ctx.ui.notify("EverOS reconnect requested. Run /everos status after tools appear.", "info");
+  ctx.ui.notify(t("reconnect"), "info");
 }

@@ -1,6 +1,8 @@
 import { redact, redactRecord } from "./redact.ts";
 
 export interface DoctorSnapshot {
+  banner?: string;
+  end?: string;
   enabled: boolean;
   uvx: string;
   uvxOnDisk: boolean;
@@ -20,7 +22,7 @@ export interface DoctorSnapshot {
 
 export function buildDoctorReport(snap: DoctorSnapshot): string {
   const lines = [
-    "----- pi-everos doctor -----",
+    snap.banner ?? "----- pi-everos doctor -----",
     `enabled=${snap.enabled}`,
     `uvx=${redact(snap.uvx)}${snap.uvxOnDisk ? "" : " (not on disk; PATH fallback)"}`,
     `key=${snap.keySource}`,
@@ -32,7 +34,7 @@ export function buildDoctorReport(snap: DoctorSnapshot): string {
     ...Object.entries(snap.toolCounts).map(([name, count]) => `tools.${name}=${count}`),
     `promptEnabled=${snap.promptEnabled}`,
     ...snap.notes.map((note) => redact(note)),
-    "----- end -----",
+    snap.end ?? "----- end -----",
   ];
   return lines.filter(Boolean).join("\n");
 }

@@ -133,7 +133,7 @@ v1 认证：`EVEROS_API_KEY`。
 本机迁移（M1 必做）：
 
 1. 检测到 `mcp.json` 的 `everos` 后，`/everos doctor` 明确说“文件配置覆盖了插件”。
-2. 指引：禁用或改名该条目（例如 `everos-legacy`），再 `/reload`。
+2. 指引：禁用（`enabled: false`）或改名该条目（例如 `everos-legacy`），再 `/reload`。禁用后插件占用 `everos` 名；仅启用中的同名条目会让路到 `everos-pi`。
 3. 不自动改用户的 `mcp.json`。
 
 ## 7. 目录结构

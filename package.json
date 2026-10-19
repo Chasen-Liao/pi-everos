@@ -1,6 +1,6 @@
 {
   "name": "pi-everos",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "EverOS memory protocol for Pi Agent",
@@ -10,7 +10,7 @@
     "extensions": ["./extensions/index.ts"]
   },
   "scripts": {
-    "test": "node --test tests/config.test.mjs tests/guard.test.mjs tests/prompt.test.mjs tests/redact.test.mjs tests/report.test.mjs tests/scope.test.mjs tests/text.test.mjs"
+    "test": "node --test --test-concurrency=1 tests/config.test.mjs tests/guard.test.mjs tests/mcp.test.mjs tests/prompt.test.mjs tests/redact.test.mjs tests/report.test.mjs tests/scope.test.mjs tests/text.test.mjs"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

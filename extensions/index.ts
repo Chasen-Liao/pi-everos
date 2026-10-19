@@ -4,6 +4,7 @@ import { ensureSettingsFile, type EverosSettings } from "../src/config.ts";
 import { mcpApiKeyEnv, resolveCredentials, resolveProcessCredentials } from "../src/credentials.ts";
 import {
   GLOBAL_SERVER,
+  allOwnedToolNames,
   everosToolNames,
   ownedServerNames,
   projectServerName,
@@ -11,7 +12,7 @@ import {
   resolveUvx,
   uvxConfig,
 } from "../src/mcp.ts";
-import { isMutatingMemoryTool, isPlanMode } from "../src/guard.ts";
+import { isMutatingMemoryTool, isPlanModeActive } from "../src/guard.ts";
 import { buildEverosSection } from "../src/prompt.ts";
 import { resolveProjectId } from "../src/scope.ts";
 import { planBlockReason, t } from "../src/text.ts";
@@ -62,6 +63,10 @@ export default function (pi: ExtensionAPI) {
     },
     fileServer: () => fileServer,
     creds: () => creds,
+    refreshCreds: () => {
+      creds = resolveCredentials();
+      return creds;
+    },
     uvxCommand: () => uvx.command,
     uvxOnDisk: () => uvx.onDisk,
     registerServers,
@@ -73,41 +78,45 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_start", (_event, ctx) => {
+    const previousCwd = cwd;
+    const hadCreds = creds.present;
     cwd = ctx.cwd;
-    if (!creds.present) {
-      creds = resolveCredentials();
-      if (creds.present) registerServers();
+    if (!creds.present) creds = resolveCredentials();
+    if (settings.enabled && creds.present) {
+      if (previousCwd !== cwd) {
+        unregisterServers();
+        registerServers();
+      } else if (!hadCreds) {
+        registerServers();
+      }
     }
     if (startupWarned) return;
     startupWarned = true;
     if (!settings.enabled) return;
-    if (!creds.present) {
-      ctx.ui.notify(t("missingKey"), "warning");
-    } else if (fileServer.overridesExtension) {
-      ctx.ui.notify(t("override"), "warning");
-    } else if (!uvx.onDisk) {
-      ctx.ui.notify(t("uvMissing"), "warning");
-    }
+    if (!creds.present) ctx.ui.notify(t("missingKey"), "warning");
+    else if (fileServer.overridesExtension) ctx.ui.notify(t("override"), "warning");
+    else if (!uvx.onDisk) ctx.ui.notify(t("uvMissing"), "warning");
   });
 
   pi.on("tool_call", (event, ctx) => {
-    const reason = isPlanMode(ctx.sessionManager.getBranch()) && isMutatingMemoryTool(event.toolName)
-      ? planBlockReason(event.toolName)
-      : undefined;
-    if (reason) return { block: true, reason };
+    const planFlag = pi.getFlag("plan") === true;
+    if (!isPlanModeActive(ctx.sessionManager.getBranch(), planFlag)) return;
+    if (!isMutatingMemoryTool(event.toolName)) return;
+    return { block: true, reason: planBlockReason(event.toolName) };
   });
 
   pi.on("tool_result", (event, ctx) => {
-    if (errorWarned || !event.isError || !event.toolName.startsWith("mcp__everos")) return;
+    if (errorWarned || !event.isError) return;
+    if (!allOwnedToolNames(pi, servers()).includes(event.toolName)) return;
     errorWarned = true;
-    ctx.ui.notify("EverOS: a memory tool failed. Main chat continues. /everos reconnect or /everos doctor.", "warning");
+    ctx.ui.notify(t("toolFailed"), "warning");
   });
 
   pi.on("session_shutdown", () => {
     unregisterServers();
   });
 
-  pi.on("before_agent_start", (event, ctx) => {
+  pi.on("before_agent_start", (event) => {
     if (!settings.prompt.enabled) {
       delete event.systemPromptOptions.sections.everos;
       return;
@@ -121,6 +130,7 @@ export default function (pi: ExtensionAPI) {
       projectTools,
       globalTools,
       maxTokens: settings.prompt.maxTokens,
+      customText: settings.prompt.customText,
       overrideWarning:
         fileServer.overridesExtension && projectTools.length === 0
           ? "Disable or rename the mcp.json `everos` entry, then /reload."
