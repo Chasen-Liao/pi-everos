@@ -1,13 +1,22 @@
 {
   "name": "pi-everos",
   "version": "0.1.1",
-  "private": true,
   "type": "module",
-  "description": "EverOS memory protocol for Pi Agent",
-  "keywords": ["pi-package"],
-  "files": ["extensions", "src", "schemas", "README.md", "docs"],
+  "description": "EverOS Cloud memory plugin for Pi Agent: proactive recall and save via uvx MCP.",
+  "keywords": ["pi-package", "everos", "memory", "mcp", "pi-agent"],
+  "author": "Chasen Liao",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chasen-Liao/pi-everos.git"
+  },
+  "homepage": "https://github.com/Chasen-Liao/pi-everos#readme",
+  "bugs": {
+    "url": "https://github.com/Chasen-Liao/pi-everos/issues"
+  },
+  "files": ["extensions", "src", "schemas", "README.md", "CHANGELOG.md", "docs"],
   "pi": {
-    "extensions": ["./extensions/index.ts"]
+    "extensions": ["./extensions/index.ts"],
+    "image": "./docs/everos-get-profile.png"
   },
   "scripts": {
     "test": "node --test --test-concurrency=1 tests/config.test.mjs tests/guard.test.mjs tests/mcp.test.mjs tests/prompt.test.mjs tests/redact.test.mjs tests/report.test.mjs tests/scope.test.mjs tests/text.test.mjs"

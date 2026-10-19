@@ -1,18 +1,36 @@
 # pi-everos
 
-EverOS Cloud 的 Pi Agent 插件。安装后自动注册 `uvx everos-mcp`，并把记忆协议注入每次运行，让模型主动检索和保存。
+![Pi 主动调用 everos/get_profile 召回决策](docs/everos-get-profile.png)
 
-需要本机已有 [uv](https://docs.astral.sh/uv/) 和 `EVEROS_API_KEY`。
+给 Pi Agent 接上 [EverOS Cloud](https://everos.evermind.ai) 云端记忆。安装后自动注册 `uvx everos-mcp`（`exposure: direct`），并把记忆协议注入每次运行，模型会自己检索和保存，不必每次说「去查 EverOS」。
 
-记忆协议段默认英文（受 `prompt.maxTokens` 限制）。`/everos` 命令与 doctor 标题跟随 `PI_LANG`/`LANG`（`zh` 用中文）。
+- 产品：[EverOS Cloud](https://everos.evermind.ai)
+- 接入：[EverOS MCP 文档](https://docs.evermind.ai/cloud/mcp.md)
+- 作用域：[API 与记忆作用域](https://docs.evermind.ai/llms.txt)
+
+记忆协议段默认英文（受 `prompt.maxTokens` 限制）。`/everos` 命令与 doctor 跟随 `PI_LANG`/`LANG`（`zh` 用中文）。
+
+## 需要
+
+- [Pi Agent CLI](https://github.com/badlogic/pi-mono) 1.3+
+- [uv](https://docs.astral.sh/uv/)，用来跑 `uvx everos-mcp`
+- 环境变量 `EVEROS_API_KEY`（在 [EverOS Cloud](https://everos.evermind.ai) 创建；**不要**写进设置文件）
 
 ## 安装
 
 ```bash
-pi install D:/MyProjects/pi-everos
+pi install npm:pi-everos
 ```
 
-若 `~/.pi/agent/mcp.json` 里已有**启用的** `everos` 条目，文件配置会覆盖插件，插件改用 `everos-pi`。把该条目 `enabled: false` 或改名后 `/reload`，插件即可占用 `everos`。插件不会改 `mcp.json`。
+或从 GitHub：
+
+```bash
+pi install git:github.com/Chasen-Liao/pi-everos
+```
+
+装好后新开一个 Pi 会话，可用 `/everos doctor` 检查连接。
+
+若 `~/.pi/agent/mcp.json` 里已有**启用的** `everos` 条目，文件配置会覆盖插件，插件改用 `everos-pi`。把该条目设为 `enabled: false` 或改名后 `/reload`，插件即可占用 `everos`。插件不会改你的 `mcp.json`。
 
 ## 命令
 
@@ -41,10 +59,11 @@ npm test
 pi -e ./extensions/index.ts
 ```
 
-架构见 [docs/architecture.md](./docs/architecture.md)，实施记录见 [Plan.md](./Plan.md)。
+架构见 [docs/architecture.md](./docs/architecture.md)。
 
 ## 限制
 
 - 默认是 `uvx everos-mcp` + API key，7 个工具。
 - 远程 OAuth MCP 不是 v1 默认。
 - plan 模式会拦截 `add_memory` / `forget_session` / `record_trajectory`。
+- `forget_session` 会先向你确认。
