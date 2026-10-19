@@ -1,16 +1,18 @@
 # pi-everos
 
-EverOS Cloud 的 Pi Agent 插件。把记忆协议注入每次运行，让模型主动检索和保存经验；通过 OAuth 登录一次，自动注册 MCP 并在重启后恢复连接。
+EverOS Cloud 的 Pi Agent 插件。安装后自动注册 `uvx everos-mcp`，并把记忆协议注入每次运行，让模型主动检索和保存。
 
-当前处于规划阶段，功能尚未实现。实施细节见 [Plan.md](./Plan.md)。
+需要本机已有 [uv](https://docs.astral.sh/uv/) 和 `EVEROS_API_KEY`。
 
-## 计划中的安装方式
+## 安装
 
 ```bash
-pi install ./pi-everos
+pi install D:/MyProjects/pi-everos
 ```
 
-## 计划中的命令
+若 `~/.pi/agent/mcp.json` 里已有名为 `everos` 的服务器，文件配置会覆盖插件。先删掉或改名该条目，再启动 Pi。
+
+## 命令
 
 ```text
 /everos status
@@ -21,8 +23,25 @@ pi install ./pi-everos
 /everos doctor
 ```
 
-## 已知限制
+登录不会把 API key 写入 `everos.json`。把 `EVEROS_API_KEY` 设成用户环境变量后 `/everos reconnect` 或重启 Pi。
 
-- 远程 OAuth connector 提供 5 个记忆工具，不含轨迹与 Agent 经验工具。
-- 完整 7 工具模式需要本地 `uvx everos-mcp` 运行时。
+## 作用域
 
+- 项目连接：当前工作区（`projectId: auto` 时用目录名）
+- 全局连接：`everos-global`（默认 `global`）
+- `/everos scope auto|project <id>|global <id>` 可改映射
+
+## 开发
+
+```bash
+npm test
+pi -e ./extensions/index.ts
+```
+
+架构见 [docs/architecture.md](./docs/architecture.md)，实施记录见 [Plan.md](./Plan.md)。
+
+## 限制
+
+- 默认是 `uvx everos-mcp` + API key，7 个工具。
+- 远程 OAuth MCP 不是 v1 默认。
+- plan 模式会拦截 `add_memory` / `forget_session` / `record_trajectory`。
