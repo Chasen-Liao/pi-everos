@@ -1,6 +1,6 @@
 # pi-everos
 
-![Pi 主动调用 everos/get_profile 召回决策](docs/everos-get-profile.png)
+![pi-everos 诊断与 /everos 命令](docs/everos-doctor.png)
 
 给 Pi Agent 接上 [EverOS Cloud](https://everos.evermind.ai) 云端记忆。安装后自动注册 `uvx everos-mcp`（`exposure: direct`），并把记忆协议注入每次运行，模型会自己检索和保存，不必每次说「去查 EverOS」。
 

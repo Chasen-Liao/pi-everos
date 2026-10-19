@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- README 截图改为 `/everos doctor` 与命令面板。
+
 ## 0.1.1
 
 - Plan 冷启动也拦截记忆写入（`--plan` flag + session entry）。

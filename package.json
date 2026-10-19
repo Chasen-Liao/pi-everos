@@ -1,6 +1,6 @@
 {
   "name": "pi-everos",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "EverOS Cloud memory plugin for Pi Agent: proactive recall and save via uvx MCP.",
   "keywords": ["pi-package", "everos", "memory", "mcp", "pi-agent"],
@@ -16,7 +16,7 @@
   "files": ["extensions", "src", "schemas", "README.md", "CHANGELOG.md", "docs"],
   "pi": {
     "extensions": ["./extensions/index.ts"],
-    "image": "./docs/everos-get-profile.png"
+    "image": "./docs/everos-doctor.png"
   },
   "scripts": {
     "test": "node --test --test-concurrency=1 tests/config.test.mjs tests/guard.test.mjs tests/mcp.test.mjs tests/prompt.test.mjs tests/redact.test.mjs tests/report.test.mjs tests/scope.test.mjs tests/text.test.mjs"
