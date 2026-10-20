@@ -11,6 +11,8 @@ export interface EverosSettings {
   appId: string;
   projectId: string;
   globalProjectId: string;
+  /** MCP `EVEROS_ASSISTANT_SENDER_ID`. Empty/omitted → `assistant-<userId>`. */
+  assistantSenderId?: string;
   prompt: {
     enabled: boolean;
     maxTokens: number;
@@ -59,24 +61,23 @@ export function saveSettings(settings: EverosSettings): void {
     maxTokens: settings.prompt.maxTokens,
   };
   if (settings.prompt.customText?.trim()) prompt.customText = settings.prompt.customText.trim();
-  writeFileSync(
-    path,
-    `${JSON.stringify(
-      {
-        $schema: "./schemas/everos.schema.json",
-        enabled: settings.enabled,
-        mode: "uvx",
-        userId: settings.userId,
-        appId: settings.appId,
-        projectId: settings.projectId,
-        globalProjectId: settings.globalProjectId,
-        prompt,
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
-  );
+  const body: Record<string, unknown> = {
+    $schema: "./schemas/everos.schema.json",
+    enabled: settings.enabled,
+    mode: "uvx",
+    userId: settings.userId,
+    appId: settings.appId,
+    projectId: settings.projectId,
+    globalProjectId: settings.globalProjectId,
+    prompt,
+  };
+  if (settings.assistantSenderId) body.assistantSenderId = settings.assistantSenderId;
+  writeFileSync(path, `${JSON.stringify(body, null, 2)}\n`, "utf8");
+}
+
+/** Agent identity for cases/skills. Matches everos-mcp's default when unset. */
+export function resolveAssistantSenderId(settings: EverosSettings): string {
+  return settings.assistantSenderId || `assistant-${settings.userId}`;
 }
 
 export function ensureSettingsFile(): EverosSettings {
@@ -89,6 +90,7 @@ export function ensureSettingsFile(): EverosSettings {
 export function parseSettings(raw: Record<string, unknown>): EverosSettings {
   const promptRaw = isRecord(raw.prompt) ? raw.prompt : {};
   const customText = typeof promptRaw.customText === "string" ? promptRaw.customText.trim() : undefined;
+  const assistantSenderId = optionalScope(raw.assistantSenderId);
   return {
     enabled: raw.enabled !== false,
     mode: "uvx",
@@ -96,6 +98,7 @@ export function parseSettings(raw: Record<string, unknown>): EverosSettings {
     appId: scopeOr(raw.appId, DEFAULT_SETTINGS.appId),
     projectId: projectOr(raw.projectId, DEFAULT_SETTINGS.projectId),
     globalProjectId: scopeOr(raw.globalProjectId, DEFAULT_SETTINGS.globalProjectId),
+    ...(assistantSenderId ? { assistantSenderId } : {}),
     prompt: {
       enabled: promptRaw.enabled !== false,
       maxTokens: clampTokens(promptRaw.maxTokens),
@@ -104,8 +107,12 @@ export function parseSettings(raw: Record<string, unknown>): EverosSettings {
   };
 }
 
+function optionalScope(value: unknown): string | undefined {
+  return typeof value === "string" && isValidScopeId(value) ? value : undefined;
+}
+
 function scopeOr(value: unknown, fallback: string): string {
-  return typeof value === "string" && isValidScopeId(value) ? value : fallback;
+  return optionalScope(value) ?? fallback;
 }
 
 function projectOr(value: unknown, fallback: string): string {

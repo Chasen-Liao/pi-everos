@@ -62,6 +62,18 @@ const COPY = {
     en: "EverOS memory is currently unavailable. Do not call memory tools. Continue the user's task without them.",
     zh: "EverOS 记忆暂不可用。不要调用记忆工具，继续完成用户任务。",
   },
+  agentGate: {
+    en: "agent.gate=>3 tool-call rounds (shorter trajectories produce no case)",
+    zh: "agent.gate=超过 3 轮工具调用（更短的轨迹不会生成 case）",
+  },
+  agentDistill: {
+    en: "agent.distill=async; cases/skills appear in seconds to minutes",
+    zh: "agent.distill=异步；case/skill 数秒到数分钟后可搜",
+  },
+  agentForget: {
+    en: "agent.forget=session memories and cases deleted; learned skills kept",
+    zh: "agent.forget=删除本会话记忆和 case，保留已学到的 skill",
+  },
 } as const;
 
 export function t(key: Exclude<keyof typeof COPY, "planBlock">): string {

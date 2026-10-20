@@ -1,8 +1,8 @@
 # pi-everos 实施计划
 
-> 状态：M5 本地可安装，未做 npm publish
-> 目标运行时：Pi Agent CLI `@earendil-works/pi-coding-agent` 1.3.x（本机已验证 `pi --version` = 1.3.0）
-> 最后更新：2026-10-19
+> 状态：v1 已落地；0.2.0 增加 case/skill 协议段（蒸馏仍在 Cloud）
+> 目标运行时：Pi Agent CLI `@earendil-works/pi-coding-agent` 1.3.x
+> 最后更新：2026-10-20
 
 ## 1. 背景与要解决的问题
 

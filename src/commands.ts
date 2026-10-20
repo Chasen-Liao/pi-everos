@@ -1,6 +1,6 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { EverosSettings } from "./config.ts";
-import { saveSettings } from "./config.ts";
+import { resolveAssistantSenderId, saveSettings } from "./config.ts";
 import type { FileServerInfo } from "./mcp.ts";
 import {
   GLOBAL_SERVER,
@@ -14,6 +14,7 @@ import {
 } from "./mcp.ts";
 import { buildDoctorReport } from "./report.ts";
 import type { ResolvedCredentials } from "./credentials.ts";
+import { pickEverosTool } from "./prompt.ts";
 import { isValidScopeId } from "./scope.ts";
 import { t } from "./text.ts";
 
@@ -79,10 +80,15 @@ async function status(deps: CommandDeps, ctx: ExtensionCommandContext, doctor: b
   const servers = ownedServerNames(fileServer);
   const projectServer = projectServerName(fileServer);
   if (settings.enabled) await waitForTools(deps.pi, projectServer, 12_000);
+  const tools: Record<string, string[]> = {
+    [SPIKE_SERVER]: everosToolNames(deps.pi, SPIKE_SERVER),
+    [PROJECT_SERVER]: everosToolNames(deps.pi, PROJECT_SERVER),
+    [GLOBAL_SERVER]: everosToolNames(deps.pi, GLOBAL_SERVER),
+  };
   const counts = {
-    [SPIKE_SERVER]: everosToolNames(deps.pi, SPIKE_SERVER).length,
-    [PROJECT_SERVER]: everosToolNames(deps.pi, PROJECT_SERVER).length,
-    [GLOBAL_SERVER]: everosToolNames(deps.pi, GLOBAL_SERVER).length,
+    [SPIKE_SERVER]: tools[SPIKE_SERVER].length,
+    [PROJECT_SERVER]: tools[PROJECT_SERVER].length,
+    [GLOBAL_SERVER]: tools[GLOBAL_SERVER].length,
   };
   const notes: string[] = [];
   if (fileServer.present && fileServer.enabled) notes.push(t("doctorDisable"));
@@ -93,6 +99,8 @@ async function status(deps: CommandDeps, ctx: ExtensionCommandContext, doctor: b
     notes.push("doctor: no extension-owned EverOS tools yet. Wait for MCP connect, or check uvx/key.");
   }
   if (!settings.enabled) notes.push("doctor: plugin disabled in everos.json. /everos login to enable.");
+  const projectTools = tools[projectServer] ?? [];
+  const globalTools = tools[GLOBAL_SERVER];
   const report = buildDoctorReport({
     banner: t("doctorBanner"),
     end: t("doctorEnd"),
@@ -107,9 +115,17 @@ async function status(deps: CommandDeps, ctx: ExtensionCommandContext, doctor: b
     appId: settings.appId,
     projectId: deps.projectId(),
     globalProjectId: settings.globalProjectId,
+    assistantSenderId: resolveAssistantSenderId(settings),
     owned: servers,
     toolCounts: counts,
     promptEnabled: settings.prompt.enabled,
+    projectRecord: Boolean(pickEverosTool(projectTools, "record_trajectory")),
+    projectRecall: Boolean(pickEverosTool(projectTools, "recall_agent_experience")),
+    globalRecord: Boolean(pickEverosTool(globalTools, "record_trajectory")),
+    globalRecall: Boolean(pickEverosTool(globalTools, "recall_agent_experience")),
+    agentGate: t("agentGate"),
+    agentDistill: t("agentDistill"),
+    agentForget: t("agentForget"),
     notes: doctor ? notes : [],
   });
   ctx.ui.notify(report, fileServer.overridesExtension || !creds.present || !settings.enabled ? "warning" : "info");

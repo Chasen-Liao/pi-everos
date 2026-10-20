@@ -38,6 +38,10 @@
       "default": "global",
       "description": "EVEROS_PROJECT_ID for the global memory connection"
     },
+    "assistantSenderId": {
+      "type": "string",
+      "description": "EVEROS_ASSISTANT_SENDER_ID for cases and skills. Omit to use assistant-<userId>. Changing this hides experience stored under the previous id."
+    },
     "prompt": {
       "type": "object",
       "additionalProperties": false,
@@ -51,7 +55,7 @@
         },
         "customText": {
           "type": "string",
-          "description": "Optional replacement for the generated memory protocol. Still clipped by maxTokens. Never put secrets here."
+          "description": "Optional replacement for the user-memory protocol only. Still clipped by maxTokens. Does not replace the agent-experience section. Never put secrets here."
         }
       }
     }

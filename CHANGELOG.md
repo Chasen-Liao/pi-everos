@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- 注入独立的 `everos-agent` 协议段：模型在非平凡任务前召回 case/skill，超过三轮工具调用后记录完整轨迹；蒸馏仍在 EverOS Cloud。
+- 可选 `assistantSenderId`（默认 `assistant-<userId>`）；`/everos status` 与 doctor 展示身份、record/recall 是否在线、质量门与 forget 保留 skill。
+- README 增加官方仓 [`pi/`](https://github.com/EverMind-AI/Plugins/tree/main/pi) 入口，并补充 [MAINTENANCE.md](./MAINTENANCE.md)。
+
 ## 0.1.2
 
 - README 截图改为 `/everos doctor` 与命令面板。

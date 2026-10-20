@@ -1,6 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { registerEverosCommand } from "../src/commands.ts";
-import { ensureSettingsFile, type EverosSettings } from "../src/config.ts";
+import { ensureSettingsFile, resolveAssistantSenderId, type EverosSettings } from "../src/config.ts";
 import { mcpApiKeyEnv, resolveCredentials, resolveProcessCredentials } from "../src/credentials.ts";
 import {
   GLOBAL_SERVER,
@@ -13,7 +13,7 @@ import {
   uvxConfig,
 } from "../src/mcp.ts";
 import { isMutatingMemoryTool, isPlanModeActive } from "../src/guard.ts";
-import { buildEverosSection } from "../src/prompt.ts";
+import { buildEverosAgentSection, buildEverosSection } from "../src/prompt.ts";
 import { resolveProjectId } from "../src/scope.ts";
 import { planBlockReason, t } from "../src/text.ts";
 
@@ -46,6 +46,7 @@ export default function (pi: ExtensionAPI) {
       ...mcpApiKeyEnv(creds),
       EVEROS_USER_ID: settings.userId,
       EVEROS_APP_ID: settings.appId,
+      EVEROS_ASSISTANT_SENDER_ID: resolveAssistantSenderId(settings),
     };
     for (const name of servers()) {
       const id = name === GLOBAL_SERVER ? settings.globalProjectId : projectId();
@@ -117,14 +118,17 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("before_agent_start", (event) => {
+    const sections = event.systemPromptOptions.sections;
     if (!settings.prompt.enabled) {
-      delete event.systemPromptOptions.sections.everos;
+      delete sections.everos;
+      delete sections.everos_agent;
       return;
     }
     const projectTools = everosToolNames(pi, projectServerName(fileServer));
     const globalTools = everosToolNames(pi, GLOBAL_SERVER);
-    event.systemPromptOptions.sections.everos = buildEverosSection({
-      available: settings.enabled && creds.present,
+    const available = settings.enabled && creds.present;
+    sections.everos = buildEverosSection({
+      available,
       projectId: projectId(),
       globalProjectId: settings.globalProjectId,
       projectTools,
@@ -136,5 +140,8 @@ export default function (pi: ExtensionAPI) {
           ? "Disable or rename the mcp.json `everos` entry, then /reload."
           : undefined,
     });
+    const agent = buildEverosAgentSection({ available, projectTools, globalTools });
+    if (agent) sections.everos_agent = agent;
+    else delete sections.everos_agent;
   });
 }
