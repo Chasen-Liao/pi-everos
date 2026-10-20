@@ -15,7 +15,7 @@
 
 1. 先在 `D:\MyProjects\Plugins\pi` 改，跑 `npm test`。
 2. 把同一批文件拷回本仓库。两边 `extensions/`、`src/`、`schemas/`、`tests/` 必须一致。
-3. 本仓库独有、**不要**拷进官方仓：`Plan.md`、`REVIEW-FIX-PLAN.md`、`scripts/`、本文件。
+3. 本仓库独有、**不要**拷进官方仓：`Plan.md`、`scripts/`、本文件。
 4. 官方仓独有、**不要**拷回这里：根 `README.md`、`.github/workflows/pi.yml`。
 5. 官方仓的 `package.json` `repository.directory` 是 `"pi"`；本仓库保持自己的 git URL，不要覆盖。
 

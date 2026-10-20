@@ -8,7 +8,7 @@ alwaysApply: true
 本仓库是 `pi-everos` 的 git/npm 安装源。官方副本在 `D:\MyProjects\Plugins\pi`（上游 `EverMind-AI/Plugins`）。
 
 - 行为改动先做官方仓 `pi/`，再拷回本仓库；`extensions/`、`src/`、`schemas/`、`tests/` 必须两边一致。
-- 不要把 `Plan.md`、`REVIEW-FIX-PLAN.md`、`scripts/`、`MAINTENANCE.md` 拷进 Plugins。
+- 不要把 `Plan.md`、`scripts/`、`MAINTENANCE.md` 拷进 Plugins。
 - 不要把 Plugins 根 README 或 `.github/workflows/pi.yml` 拷回本仓库。
 - 不要改掉本仓库 `package.json` 的 `repository` / `homepage`（必须仍指向 `Chasen-Liao/pi-everos`）。官方仓那份才写 `directory: "pi"`。
 - 发布 npm 或打 git tag 前，先确认已与 `D:\MyProjects\Plugins\pi` 对齐。
